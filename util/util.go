@@ -28,7 +28,7 @@ func ConfigAWS(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("AWS Profile Name: %s, Region: %s\n", name, region)
+	fmt.Printf("\x1b[32mAWS Profile Name: %s, Region: %s\x1b[0m\n", name, region)
 	os.Setenv(accessKeyID, credValue.AccessKeyID)
 	os.Setenv(secretAccessKey, credValue.SecretAccessKey)
 	return nil

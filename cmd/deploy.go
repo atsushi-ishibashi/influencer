@@ -46,11 +46,9 @@ func NewPlanCommand(out, errOut io.Writer) cli.Command {
 			if err != nil {
 				return err
 			}
-			service, err := p.fetchService()
-			if err != nil {
-				return err
+			if err = p.validateECRImage(); err != nil {
+				return fmt.Errorf("\x1b[31m%s\x1b[0m", err)
 			}
-			fmt.Printf("cluster: %s, service: %s, taskdef: %s\n", *service.ClusterArn, *service.ServiceName, *service.TaskDefinition)
 			if c.Bool("dry-run") {
 				if err = p.printDiff(); err != nil {
 					return err
@@ -76,13 +74,13 @@ type plan struct {
 func newPlan(c *cli.Context) (plan, error) {
 	p := plan{images: make([]containerImage, 0)}
 	if c.String("cluster") == "" {
-		return p, errors.New("--cluster is required")
+		return p, errors.New("\x1b[31m--cluster is required\x1b[0m")
 	}
 	if c.String("service") == "" {
-		return p, errors.New("--service is required")
+		return p, errors.New("\x1b[31m--service is required\x1b[0m")
 	}
 	if len(c.StringSlice("image")) == 0 {
-		return p, errors.New("--image is required")
+		return p, errors.New("\x1b[31m--image is required\x1b[0m")
 	}
 	p.cluster = c.String("cluster")
 	p.service = c.String("service")
@@ -116,19 +114,26 @@ func (p *plan) execute() error {
 	if err != nil {
 		return err
 	}
-	newTaskDef, err := p.createNewTaskDefinition(taskDef)
+	newTaskDef, changed, err := p.createNewTaskDefinition(taskDef)
 	if err != nil {
 		return err
+	}
+	if !changed {
+		fmt.Println("\x1b[31m" + "There is no difference from current task definition..." + "\x1b[0m")
+		util.PdiffTaskDef(newTaskDef.String(), taskDef.String())
+		return nil
 	}
 	regiTaskDef, err := p.registerTaskDefinition(newTaskDef)
 	if err != nil {
 		return err
 	}
+	fmt.Println("\x1b[32m" + "Registered New Task Definition..." + "\x1b[0m")
+	util.PdiffTaskDef(regiTaskDef.String(), taskDef.String())
 	newServ, err := p.ecsCli.UpdateServiceWithTaskDef(serv, regiTaskDef)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Update Service... service name: %s, task definition: %s, task count: %d\n", *newServ.ServiceName, *newServ.TaskDefinition, *newServ.DesiredCount)
+	fmt.Printf("\x1b[32mUpdate Service... cluster arn: %s, service name: %s, task definition: %s, task count: %d\x1b[0m\n", *newServ.ClusterArn, *newServ.ServiceName, *newServ.TaskDefinition, *newServ.DesiredCount)
 	return nil
 }
 
@@ -141,7 +146,7 @@ func (p *plan) printDiff() error {
 	if err != nil {
 		return err
 	}
-	newTaskDef, err := p.createNewTaskDefinition(taskDef)
+	newTaskDef, _, err := p.createNewTaskDefinition(taskDef)
 	if err != nil {
 		return err
 	}
@@ -161,8 +166,9 @@ func (p *plan) registerTaskDefinition(taskDef *ecs.TaskDefinition) (*ecs.TaskDef
 	return p.ecsCli.RegisterTaskDefinition(taskDef)
 }
 
-func (p *plan) createNewTaskDefinition(taskDef *ecs.TaskDefinition) (*ecs.TaskDefinition, error) {
+func (p *plan) createNewTaskDefinition(taskDef *ecs.TaskDefinition) (*ecs.TaskDefinition, bool, error) {
 	newTaskDef := *taskDef
+	changed := false
 	var containers []*ecs.ContainerDefinition
 	for _, c := range taskDef.ContainerDefinitions {
 		cc := *c
@@ -170,14 +176,27 @@ func (p *plan) createNewTaskDefinition(taskDef *ecs.TaskDefinition) (*ecs.TaskDe
 			dimg, err := p.ecrCli.FetchImageWithTag(img.name, img.tag)
 			if err != nil {
 				// TODO: DockerHubなどのイメージ対応
-				return nil, err
+				return nil, changed, err
 			}
 			cc.Image = aws.String(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s:%s", *dimg.RegistryId, os.Getenv("AWS_DEFAULT_REGION"), *dimg.RepositoryName, *dimg.ImageId.ImageTag))
+			if *cc.Image != *c.Image {
+				changed = true
+			}
 		}
 		containers = append(containers, &cc)
 	}
 	newTaskDef.ContainerDefinitions = containers
-	return &newTaskDef, nil
+	return &newTaskDef, changed, nil
+}
+
+func (p *plan) validateECRImage() error {
+	for _, v := range p.images {
+		_, err := p.ecrCli.FetchImageWithTag(v.name, v.tag)
+		if err != nil {
+			return fmt.Errorf("Not Found ECR Image %s:%s\n", v.name, v.tag)
+		}
+	}
+	return nil
 }
 
 func (p *plan) searchImage(imageName string) (containerImage, bool) {

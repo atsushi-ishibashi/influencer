@@ -28,7 +28,7 @@ func ConfigAWS(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("\x1b[32mAWS Profile Name: %s, Region: %s\x1b[0m\n", name, region)
+	PrintlnGreen(fmt.Sprintf("AWS Profile Name: %s, Region: %s", name, region))
 	os.Setenv(accessKeyID, credValue.AccessKeyID)
 	os.Setenv(secretAccessKey, credValue.SecretAccessKey)
 	return nil
@@ -73,4 +73,39 @@ func PdiffTaskDef(target, previous string) {
 		}
 	}
 	fmt.Println(buff.String())
+}
+
+//PrintlnGreen Println in Green
+func PrintlnGreen(s string) {
+	fmt.Printf("\x1b[32m%s\x1b[0m\n", s)
+}
+
+//PrintlnRed Println in Red
+func PrintlnRed(s string) {
+	fmt.Printf("\x1b[31m%s\x1b[0m\n", s)
+}
+
+//PrintlnYellow Println in Yellow
+func PrintlnYellow(s string) {
+	fmt.Printf("\x1b[33m%s\x1b[0m\n", s)
+}
+
+//ErrorlnRed Error in Red
+func ErrorRed(s string) error {
+	return fmt.Errorf("\x1b[31m%s\x1b[0m", s)
+}
+
+//SprintGreen Sprintf in Green
+func SprintGreen(s string) string {
+	return fmt.Sprintf("\x1b[32m%s\x1b[0m", s)
+}
+
+//SprintRed Sprintf in Red
+func SprintRed(s string) string {
+	return fmt.Sprintf("\x1b[31m%s\x1b[0m", s)
+}
+
+//SprintYellow Sprintf in Yellow
+func SprintYellow(s string) string {
+	return fmt.Sprintf("\x1b[33m%s\x1b[0m", s)
 }

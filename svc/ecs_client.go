@@ -22,6 +22,29 @@ func (ec *EcsClient) FetchTaskDefinition(taskDefName string) (*ecs.TaskDefinitio
 	return result.TaskDefinition, nil
 }
 
+func (ec *EcsClient) FetchLatestTaskDefinition(familyName string) (*ecs.TaskDefinition, error) {
+	input := &ecs.ListTaskDefinitionsInput{
+		FamilyPrefix: aws.String(familyName),
+		MaxResults:   aws.Int64(1),
+		Sort:         aws.String("DESC"),
+	}
+	result, err := ec.ListTaskDefinitions(input)
+	if err != nil {
+		return nil, err
+	}
+	if len(result.TaskDefinitionArns) == 0 {
+		return nil, fmt.Errorf("Not found task definitions of %s (family-prefix)", familyName)
+	}
+	descInput := &ecs.DescribeTaskDefinitionInput{
+		TaskDefinition: result.TaskDefinitionArns[0],
+	}
+	descResult, err := ec.DescribeTaskDefinition(descInput)
+	if err != nil {
+		return nil, err
+	}
+	return descResult.TaskDefinition, nil
+}
+
 func (ec *EcsClient) FetchService(cluster, service string) (*ecs.Service, error) {
 	input := &ecs.DescribeServicesInput{
 		Cluster: aws.String(cluster),
@@ -70,4 +93,36 @@ func (ec *EcsClient) UpdateServiceWithTaskDef(service *ecs.Service, taskDef *ecs
 	}
 
 	return result.Service, nil
+}
+
+func (ec *EcsClient) WaitUntilTasksStop(taskARNs []*string) error {
+	input := &ecs.DescribeTasksInput{
+		Tasks: taskARNs,
+	}
+	return ec.WaitUntilTasksStopped(input)
+}
+
+func (ec *EcsClient) WaitUntilServiceUpdate(cluster, service string) error {
+	input := &ecs.DescribeServicesInput{
+		Cluster: aws.String(cluster),
+		Services: []*string{
+			aws.String(service),
+		},
+	}
+	return ec.WaitUntilServicesStable(input)
+}
+
+func (ec *EcsClient) InvokeTask(cluster string, taskDef *ecs.TaskDefinition) (*ecs.RunTaskOutput, error) {
+	input := &ecs.RunTaskInput{
+		Cluster:        aws.String(cluster),
+		TaskDefinition: taskDef.TaskDefinitionArn,
+	}
+	return ec.RunTask(input)
+}
+
+func (ec *EcsClient) WatchTasks(taskARNs []*string) (*ecs.DescribeTasksOutput, error) {
+	input := &ecs.DescribeTasksInput{
+		Tasks: taskARNs,
+	}
+	return ec.DescribeTasks(input)
 }

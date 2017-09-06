@@ -23,9 +23,11 @@ func main() {
 	}
 
 	planCommand := cmd.NewPlanCommand(os.Stdout, os.Stderr)
+	syncDeployCommand := cmd.NewSyncDeployCommand(os.Stdout, os.Stderr)
 
 	app.Commands = []cli.Command{
 		planCommand,
+		syncDeployCommand,
 	}
 	app.Run(os.Args)
 }

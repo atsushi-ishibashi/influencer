@@ -1,0 +1,10 @@
+- task: db-migrate-taskdef-name
+  cluster: hoge
+  image: ubuntu:latest
+- task: db-seed-taskdef-name
+  cluster: hoge
+  image: ubuntu:latest
+- task: api-app-taskdef-name
+  cluster: hoge
+  service: hoge-service
+  image: ubuntu:latest

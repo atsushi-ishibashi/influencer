@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/atsushi-ishibashi/influencer/svc"
 	"github.com/atsushi-ishibashi/influencer/util"
@@ -206,20 +205,4 @@ func (p *plan) searchImage(imageName string) (containerImage, bool) {
 		}
 	}
 	return containerImage{}, false
-}
-
-type containerImage struct {
-	name string
-	tag  string
-}
-
-func toContainerImage(s string) (containerImage, error) {
-	ci := containerImage{}
-	sl := strings.Split(s, ":")
-	if len(sl) != 2 {
-		return ci, fmt.Errorf("image path is invalid: %s", s)
-	}
-	ci.name = sl[0]
-	ci.tag = sl[1]
-	return ci, nil
 }

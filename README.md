@@ -22,4 +22,21 @@ Examples:
   $ influencer --awsconf default --awsregion ap-northeast-1 deploy --cluster samplecluster --service sampleservice --image sample:v1.0.0
 ```
 
+### sync-deploy
+```
+$ influencer sync-deploy --help             
+NAME:
+   influencer sync-deploy - Run tasks and update service synchronously
+
+USAGE:
+   influencer sync-deploy [command options] [arguments...]
+
+OPTIONS:
+   --path value  path to yaml deploy config file
+   --dry-run     dry-run. output diff in pretty
+
+Examples:
+  $ influencer --awsconf default sync-deploy --path ./example/syncdeploy.yaml --dry-run
+  $ influencer --awsconf default sync-deploy --path ./example/syncdeploy.yaml
+```
 ## TODO

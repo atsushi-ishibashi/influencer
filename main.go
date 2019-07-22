@@ -12,8 +12,12 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
+			Name:  "awscredentialsfile",
+			Usage: "awsのcredentialsファイル（デフォルトは~/.aws/credential）",
+		},
+		cli.StringFlag{
 			Name:  "awsconf",
-			Usage: "~/.aws/credentialsから環境変数をセット(プロセスの間のみ)",
+			Usage: "awscredentialsfileから環境変数をセット(プロセスの間のみ)",
 		},
 		cli.StringFlag{
 			Name:  "awsregion",

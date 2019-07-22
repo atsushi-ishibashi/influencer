@@ -13,6 +13,7 @@ import (
 const (
 	accessKeyID     = "AWS_ACCESS_KEY_ID"
 	secretAccessKey = "AWS_SECRET_ACCESS_KEY"
+	sessionToken    = "AWS_SESSION_TOKEN"
 	defaultRegion   = "AWS_DEFAULT_REGION"
 )
 
@@ -23,14 +24,19 @@ func ConfigAWS(c *cli.Context) error {
 	if name == "" {
 		return nil
 	}
-	cred := credentials.NewSharedCredentials("", name)
+	file := c.GlobalString("awscredentialsfile")
+	if file == "" {
+		file = "~/.aws/credential"
+	}
+	cred := credentials.NewSharedCredentials(file, name)
 	credValue, err := cred.Get()
 	if err != nil {
 		return err
 	}
-	PrintlnGreen(fmt.Sprintf("AWS Profile Name: %s, Region: %s", name, region))
+	PrintlnGreen(fmt.Sprintf("AWS Credentials File: %s, AWS Profile Name: %s, Region: %s", file, name, region))
 	os.Setenv(accessKeyID, credValue.AccessKeyID)
 	os.Setenv(secretAccessKey, credValue.SecretAccessKey)
+	os.Setenv(sessionToken, credValue.SessionToken)
 	return nil
 }
 
